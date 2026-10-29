@@ -43,6 +43,15 @@ h2{font-size:22px}
 .detail .rel{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:13px;color:var(--muted)}
 .chip{font-family:var(--f-mono);font-size:11.5px;padding:2px 7px;border-radius:5px;border:1px solid var(--rule);background:var(--bg);color:var(--ink);cursor:pointer}
 .detail p{margin:0;max-width:80ch}
+#detailBody{display:grid;gap:6px;padding-right:36px}
+.fold{position:absolute;top:10px;right:10px;width:30px;height:30px;display:grid;place-items:center;border:1px solid var(--rule);border-radius:7px;background:var(--bg);color:var(--muted);cursor:pointer}
+.fold:hover{color:var(--ink)}
+.fold:focus-visible{outline:2px solid var(--str);outline-offset:2px}
+.fold svg{transition:transform .2s}
+.detail.collapsed{min-height:0;padding-block:10px}
+.detail.collapsed .fold{top:7px}
+.detail.collapsed .fold svg{transform:rotate(180deg)}
+.detail.collapsed #detailBody>:not(.eyebrow,.t){display:none}
 
 /* map grid */
 .mapScroll{overflow-x:auto;overflow-y:hidden;border:1px solid var(--rule);border-radius:12px;background:var(--surface)}
@@ -110,9 +119,12 @@ h2{font-size:22px}
   </header>
 
   <div class="mapGroup" id="mapGroup">
-  <section class="detail" id="detail" aria-live="polite">
-    <div class="t">Select a task</div>
-    <p class="small">Blue lines lead in from the tasks it needs. Red dashed lines lead out to the tasks it unblocks. Click the task again to clear the selection.</p>
+  <section class="detail" id="detail">
+    <button class="fold" id="fold" type="button" aria-expanded="true" aria-controls="detailBody" aria-label="Collapse details"><svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M3 9l4-4 4 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <div id="detailBody" aria-live="polite">
+      <div class="t">Select a task</div>
+      <p class="small">Blue lines lead in from the tasks it needs. Red dashed lines lead out to the tasks it unblocks. Click the task again to clear the selection.</p>
+    </div>
   </section>
 
   <div class="mapScroll"><div class="map" id="map"><svg class="links" id="links"></svg></div></div>
@@ -146,6 +158,10 @@ h2{font-size:22px}
 </div>
 
 <script>
+const fold=document.getElementById("fold");
+function setFold(c){document.getElementById("detail").classList.toggle("collapsed",c);fold.setAttribute("aria-expanded",!c);fold.setAttribute("aria-label",c?"Expand details":"Collapse details");try{localStorage.setItem("detailCollapsed",c?"1":"")}catch(e){}}
+fold.addEventListener("click",()=>setFold(fold.getAttribute("aria-expanded")==="true"));
+try{if(localStorage.getItem("detailCollapsed"))setFold(true)}catch(e){}
 new ResizeObserver(([e])=>document.getElementById("mapGroup").style.setProperty("--detailH",e.target.offsetHeight+"px")).observe(document.getElementById("detail"));
 const LANES=[
   {k:"str",n:"Strategy"},{k:"des",n:"Design"},{k:"eng",n:"Engineering"},{k:"mkt",n:"Marketing"},{k:"ops",n:"Ops, Legal & Launch"}];
@@ -261,7 +277,7 @@ function chips(ids){return ids.length?ids.map(i=>`<span class="chip" data-go="${
 function select(id){
   sel=id;
   map.querySelectorAll(".card").forEach(c=>c.classList.remove("on","sel"));
-  const d=document.getElementById("detail");
+  const d=document.getElementById("detailBody");
   if(!id){swap(null,null);map.classList.remove("focus");d.innerHTML='<div class="t">Select a task</div><p class="small">Blue lines lead in from the tasks it needs. Red dashed lines lead out to the tasks it unblocks. Click the task again to clear the selection.</p>';return}
   const t=byId[id];map.classList.add("focus");
   [id,...t.deps,...t.out].forEach(i=>card(i)&&card(i).classList.add("on"));card(id).classList.add("sel");
