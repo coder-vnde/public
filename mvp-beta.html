@@ -44,7 +44,7 @@ h2{font-size:22px}
 .detail p{margin:0;max-width:80ch}
 
 /* map grid */
-.mapScroll{overflow-x:auto;border:1px solid var(--rule);border-radius:12px;background:var(--surface)}
+.mapScroll{overflow-x:auto;overflow-y:hidden;border:1px solid var(--rule);border-radius:12px;background:var(--surface)}
 .map{position:relative;display:grid;grid-template-columns:132px repeat(5,minmax(208px,1fr));min-width:1180px;transition:min-width .38s cubic-bezier(.2,.7,.2,1),grid-template-columns .38s cubic-bezier(.2,.7,.2,1)}
 .map.wide{min-width:1280px}
 .map svg.links{position:absolute;inset:0;pointer-events:none;overflow:visible;z-index:3;opacity:0;transition:opacity .14s}
