@@ -47,7 +47,8 @@ h2{font-size:22px}
 .mapScroll{overflow-x:auto;border:1px solid var(--rule);border-radius:12px;background:var(--surface)}
 .map{position:relative;display:grid;grid-template-columns:132px repeat(5,minmax(208px,1fr));min-width:1180px;transition:min-width .38s cubic-bezier(.2,.7,.2,1),grid-template-columns .38s cubic-bezier(.2,.7,.2,1)}
 .map.wide{min-width:1280px}
-.map svg.links{position:absolute;inset:0;pointer-events:none;overflow:visible;z-index:3}
+.map svg.links{position:absolute;inset:0;pointer-events:none;overflow:visible;z-index:3;opacity:0;transition:opacity .14s}
+.map svg.links.show{opacity:1}
 .colHead{padding:12px 12px 10px;border-bottom:1px solid var(--rule);border-left:1px solid var(--rule);display:grid;gap:2px;align-content:start}
 .colHead .p{font-family:var(--f-mono);font-size:11.5px;color:var(--muted)}
 .colHead .n{font-family:var(--f-display);font-weight:700;font-size:16px}
@@ -89,7 +90,7 @@ h2{font-size:22px}
 .gate b{color:var(--crit);font-weight:600}
 .notes{margin:0;padding-left:18px;display:grid;gap:8px;font-size:14px;max-width:80ch}
 .small{font-size:12.5px;color:var(--muted)}
-@media (prefers-reduced-motion: reduce){.card,.map,.cell{transition:none}}
+@media (prefers-reduced-motion: reduce){.card,.map,.cell,.map svg.links{transition:none}}
 </style>
 
 <div class="wrap">
@@ -232,17 +233,23 @@ LANES.forEach(l=>{
 document.getElementById("stats").innerHTML=
  `<span><b>${T.length}</b> tasks</span><span><b>${T.filter(t=>t.crit).length}</b> on the critical path</span>`;
 
-let sel=null,raf=0;
+let sel=null,cur=null,seq=0;
 // widen the active task's column and pad its cells so incoming and outgoing lines have room
 function layout(k){
   map.style.gridTemplateColumns="132px "+PHASES.map(p=>p.k===k?"minmax(304px,1.4fr)":"minmax(208px,1fr)").join(" ");
   map.classList.toggle("wide",!!k);
   map.querySelectorAll(".cell").forEach(c=>c.classList.toggle("active",c.dataset.ph===k));
 }
-// redraw lines every frame while the column animates
-function follow(){
-  cancelAnimationFrame(raf);const end=performance.now()+450;
-  const step=()=>{if(sel)draw(sel);if(performance.now()<end)raf=requestAnimationFrame(step)};step();
+// change selection in steps so lines never move while the grid animates:
+// fade out the old lines, then resize the columns, then draw and fade in the new lines
+const still=matchMedia("(prefers-reduced-motion: reduce)");
+const wait=ms=>new Promise(r=>setTimeout(r,still.matches?0:ms));
+async function swap(id,k){
+  const my=++seq;
+  if(svg.classList.contains("show")){svg.classList.remove("show");await wait(150);if(my!==seq)return}
+  svg.innerHTML="";
+  if(k!==cur){cur=k;layout(k);await wait(400);if(my!==seq)return}
+  if(id){draw(id);svg.classList.add("show")}
 }
 layout(null);
 const card=id=>map.querySelector(`.card[data-id="${id}"]`);
@@ -250,9 +257,8 @@ function chips(ids){return ids.length?ids.map(i=>`<span class="chip" data-go="${
 function select(id){
   sel=id;
   map.querySelectorAll(".card").forEach(c=>c.classList.remove("on","sel"));
-  svg.innerHTML="";
   const d=document.getElementById("detail");
-  if(!id){layout(null);map.classList.remove("focus");d.innerHTML='<div class="t">Select a task</div><p class="small">Blue lines lead in from the tasks it needs. Red dashed lines lead out to the tasks it unblocks. Click the task again to clear the selection.</p>';return}
+  if(!id){swap(null,null);map.classList.remove("focus");d.innerHTML='<div class="t">Select a task</div><p class="small">Blue lines lead in from the tasks it needs. Red dashed lines lead out to the tasks it unblocks. Click the task again to clear the selection.</p>';return}
   const t=byId[id];map.classList.add("focus");
   [id,...t.deps,...t.out].forEach(i=>card(i)&&card(i).classList.add("on"));card(id).classList.add("sel");
   const ph=PHASES.find(p=>p.k===t.ph),ln=LANES.find(l=>l.k===t.ln);
@@ -261,7 +267,7 @@ function select(id){
    <div class="t">${t.n}</div>${t.note?`<p>${t.note}</p>`:""}
    <div class="rel">Needs ${chips(t.deps)}</div><div class="rel">Unblocks ${chips(t.out)}</div>
    <div class="rel">Runs in parallel with ${chips(par)}</div>`;
-  layout(t.ph);follow();
+  swap(id,t.ph);
 }
 function draw(id){
   const box=map.getBoundingClientRect();svg.setAttribute("width",map.scrollWidth);svg.setAttribute("height",map.scrollHeight);
@@ -278,7 +284,7 @@ function draw(id){
   svg.innerHTML=h;
 }
 document.addEventListener("click",e=>{const g=e.target.closest("[data-go]");if(g&&byId[g.dataset.go]){select(g.dataset.go);card(g.dataset.go).scrollIntoView({block:"nearest",inline:"center",behavior:"smooth"});document.getElementById("detail").scrollIntoView({block:"nearest"})}});
-addEventListener("resize",()=>sel&&draw(sel));
+addEventListener("resize",()=>sel&&svg.classList.contains("show")&&draw(sel));
 
 // critical path strip
 const CP=["S1","S2","S3","D2","D5","D6","E4","E8","E5","E15","E16","O8","O9","O10"];
