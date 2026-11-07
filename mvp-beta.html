@@ -7,7 +7,7 @@
 /* Layout: transit-map grid — workstreams are "lines" (rows), phases are "zones" (columns); click a stop to trace its connections */
 :root{
   --bg:#F3F5F8; --surface:#FFFFFF; --ink:#141922; --muted:#5D6675; --rule:#DDE2EA; --dim:.18;
-  --crit:#E0482B;
+  --crit:#E0482B; --done:#1F9D55; --doneBg:#EAF7EF;
   --str:#4C5BD4; --des:#BE3F7B; --eng:#0D857A; --mkt:#B9740F; --ops:#56667D;
   --f-display:"Bricolage Grotesque", "Avenir Next", system-ui, sans-serif;
   --f-body:"Public Sans", "Segoe UI", system-ui, sans-serif;
@@ -15,11 +15,11 @@
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
   --bg:#0F131A; --surface:#181E28; --ink:#E8ECF2; --muted:#9AA4B4; --rule:#2A3240;
-  --crit:#FF7457;
+  --crit:#FF7457; --done:#4ADE80; --doneBg:#16281E;
   --str:#8C98FF; --des:#F07AB2; --eng:#3FCDBE; --mkt:#F0B04A; --ops:#9DAEC6; color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#0F131A; --surface:#181E28; --ink:#E8ECF2; --muted:#9AA4B4; --rule:#2A3240;
-  --crit:#FF7457;
+  --crit:#FF7457; --done:#4ADE80; --doneBg:#16281E;
   --str:#8C98FF; --des:#F07AB2; --eng:#3FCDBE; --mkt:#F0B04A; --ops:#9DAEC6; color-scheme:dark}
 *{box-sizing:border-box}
 body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5}
@@ -76,6 +76,8 @@ h2{font-size:22px}
 .badge{font-family:var(--f-mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;padding:1px 6px;border-radius:4px}
 .b-crit{color:var(--crit);border:1px solid var(--crit)}
 .card.crit{box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--crit) 45%,transparent)}
+.card.done{background:var(--doneBg)}
+.card .chk{margin-left:auto;width:16px;height:16px;border-radius:50%;background:var(--done);color:var(--surface);display:inline-grid;place-items:center;flex:none}
 .map.focus .card{opacity:var(--dim)}
 .map.focus .card.on{opacity:1}
 .card.sel{outline:2px solid var(--ink);outline-offset:1px}
@@ -178,10 +180,10 @@ const GATES={
   p3:"Go/no-go passed (O8): tests green, store builds approved, testers recruited",
   p4:"Beta review decides the next milestone (O10)"};
 const T=[
- ["S0a","str","p0","open","Idea validation survey & interviews",[],0,""],
- ["S0b","str","p0","open","Desk research on similar social apps",[],0,""],
- ["S0c","str","p0","open","Competitive research",[],0,""],
- ["S1","str","p0","open","Refine & freeze Beta feature scope",["S0a","S0b","S0c"],1,"Output a must / should / won't list and a scope-freeze date. Almost every later task waits on this."],
+ ["S0a","str","p0","done","Idea validation survey & interviews",[],0,""],
+ ["S0b","str","p0","done","Desk research on similar social apps",[],0,""],
+ ["S0c","str","p0","done","Competitive research",[],0,""],
+ ["S1","str","p0","done","Refine & freeze Beta feature scope",["S0a","S0b","S0c"],1,"Output a must / should / won't list and a scope-freeze date. Almost every later task waits on this."],
  ["S2","str","p0","open","Define ICP for marketing & Beta",["S0a","S0c"],1,"Pick one primary segment for the Beta so recruitment, messaging and KPIs all target the same people."],
  ["S3","str","p1","open","Brand foundation: tone of voice, values, personality",["S2","N1"],1,"Feeds visual design, logo, mascot and every piece of marketing copy."],
  ["D1","des","p0","open","Improve feature refinement flow before engineering handoff",[],0,"Process task: define the spec template and definition of ready. Runs alongside E1 so both sides agree on the handoff."],
@@ -240,9 +242,9 @@ LANES.forEach(l=>{
   PHASES.forEach(p=>{
     const cell=document.createElement("div");cell.className="cell";cell.dataset.ph=p.k;
     T.filter(t=>t.ln===l.k&&t.ph===p.k).forEach(t=>{
-      const b=document.createElement("button");b.className="card"+(t.crit?" crit":"");
+      const b=document.createElement("button");b.className="card"+(t.crit?" crit":"")+(t.s==="done"?" done":"");
       b.style.setProperty("--lc",`var(--${l.k})`);b.dataset.id=t.id;
-      b.innerHTML=`<span class="top"><span class="id">${t.id}</span>${t.crit?'<span class="badge b-crit">crit</span>':""}</span><span class="nm">${t.n}</span>`;
+      b.innerHTML=`<span class="top"><span class="id">${t.id}</span>${t.crit?'<span class="badge b-crit">crit</span>':""}${t.s==="done"?'<span class="chk" title="Finished" aria-label="Finished"><svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d="M2 5.2l2 2 4-4.4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>':""}</span><span class="nm">${t.n}</span>`;
       b.addEventListener("click",()=>select(sel===t.id?null:t.id));
       cell.appendChild(b);
     });
